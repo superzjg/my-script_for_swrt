@@ -1,23 +1,25 @@
 #!/bin/sh
 
 # 引用环境变量
-source /jffs/softcenter/scripts/base.sh
+script_dir=/jffs/softcenter/scripts
+init_dir=/jffs/softcenter/init.d
+source $script_dir/base.sh
 # 导入skipd数据。（会合并连续的空格，有时要注意，比如del_cru）
-eval `dbus export my_`
+eval `dbus export myScript_`
 
-LOG_FILE=/tmp/upload/my_log.log
+LOG_FILE=/tmp/upload/myScript_log.log
 alias echo_date='echo 【$(TZ=UTC-8 date -R +%Y年%m月%d日\ %X)】:'
 mkdir -p /tmp/upload
 user=`nvram get http_username`
-[ "${my_script_ap}" == "1" ] && scr_file=/jffs/scripts/"${my_script_name}" || scr_file=/jffs/softcenter/scripts/"${my_script_name}"
+[ "${myScript_script_ap}" == "1" ] && scr_file=/jffs/scripts/"${myScript_script_name}" || scr_file=$script_dir/"${myScript_script_name}"
 
-if [ ! -L "/tmp/upload/my_cru_l_lnk.txt" ]; then
-	ln -sf /var/spool/cron/crontabs/"$user" /tmp/upload/my_cru_l_lnk.txt
+if [ ! -L "/tmp/upload/myScript_cru_l_lnk.txt" ]; then
+	ln -sf /var/spool/cron/crontabs/"$user" /tmp/upload/myScript_cru_l_lnk.txt
 	echo_date "添加定时任务查看链接" | tee -a $LOG_FILE
 fi
-if [ ! -L "/jffs/softcenter/init.d/N99my-script_conf.sh" ];then
+if [ ! -L "$init_dir/N99myScript.sh" ];then
 	echo_date "添加nat-start触发" | tee -a $LOG_FILE
-	ln -sf /jffs/softcenter/scripts/my-script_conf.sh /jffs/softcenter/init.d/N99my-script_conf.sh
+	ln -sf $script_dir/myScript_config.sh $init_dir/N99myScript.sh
 fi
 # 端口查询
 check_port(){
@@ -67,7 +69,7 @@ fix_v6_rules(){
     if [ "${_fw_enable_x}" == "0" ] && [ "${_ipv6_fw_enable}" == "1" ]; then
         local _buildno=`nvram get buildno`
         local M1 M2 M3 M4 M5 M6
-		local tmp_file=/tmp/My_IP6IN_rules.txt
+		local tmp_file=/tmp/myScript_IP6IN_rules.txt
         ip6tables -t filter -S INPUT > "$tmp_file"
         M1=$(cat "$tmp_file" | grep "state RELATED,ESTABLISHED -j ACCEPT")
         M2=$(cat "$tmp_file" | grep -w "br0" | grep "state NEW -j ACCEPT")
@@ -95,31 +97,31 @@ fix_v6_rules(){
 }
 # 打开端口
 open_port(){
-    [ "${my_fix_v6}" == "1" ] && fix_v6_rules
+    [ "${myScript_fix_v6}" == "1" ] && fix_v6_rules
     
-    [ -z "${my_v4tcp}" ] && [ -z "${my_v4udp}" ] && [ -z "${my_v6tcp}" ] && [ -z "${my_v6udp}" ] && return 1
+    [ -z "${myScript_v4tcp}" ] && [ -z "${myScript_v4udp}" ] && [ -z "${myScript_v6tcp}" ] && [ -z "${myScript_v6udp}" ] && return 1
     load_xt_comment
     local port
-	if [ -n "${my_v4tcp}" ]; then
+	if [ -n "${myScript_v4tcp}" ]; then
 		local t_port
-        for port in ${my_v4tcp}
+        for port in ${myScript_v4tcp}
         do
         Port_validate
         if [ -z "$(check_port tcp ${port})" ]; then
-            write_ipt tcp ${port} "${my_ipt_comment}"
+            write_ipt tcp ${port} "${myScript_ipt_comment}"
             [ -n "${t_port}" ] && t_port="${t_port},"
             t_port="${t_port}${port}"
         fi
         done
         [ -n "${t_port}" ] && echo_date "开启IPv4 TCP端口：${t_port}"
     fi
-    if [ -n "${my_v4udp}" ]; then
+    if [ -n "${myScript_v4udp}" ]; then
         local u_port
-        for port in ${my_v4udp}
+        for port in ${myScript_v4udp}
         do
         Port_validate
         if [ -z "$(check_port udp ${port})" ]; then
-            write_ipt udp ${port} "${my_ipt_comment}"
+            write_ipt udp ${port} "${myScript_ipt_comment}"
             [ -n "${u_port}" ] && u_port="${u_port},"
             u_port="${u_port}${port}"
         fi
@@ -127,26 +129,26 @@ open_port(){
         [ -n "${u_port}" ] && echo_date "开启IPv4 UDP端口：${u_port}"
     fi
 
-    if [ -n "${my_v6tcp}" ]; then
+    if [ -n "${myScript_v6tcp}" ]; then
         local t_port_v6
-        for port in ${my_v6tcp}
+        for port in ${myScript_v6tcp}
         do
         Port_validate
         if [ -z "$(check_port tcp ${port} "" 6)" ]; then
-            write_ipt tcp ${port} "${my_ipt_comment}" 6
+            write_ipt tcp ${port} "${myScript_ipt_comment}" 6
             [ -n "${t_port_v6}" ] && t_port_v6="${t_port_v6},"
             t_port_v6="${t_port_v6}${port}"
         fi
         done
         [ -n "${t_port_v6}" ] && echo_date "开启IPv6 TCP端口：${t_port_v6}"
     fi
-    if [ -n "${my_v6udp}" ]; then
+    if [ -n "${myScript_v6udp}" ]; then
         local u_port_v6
-        for port in ${my_v6udp}
+        for port in ${myScript_v6udp}
         do
         Port_validate
         if [ -z "$(check_port udp ${port} "" 6)" ]; then
-            write_ipt udp ${port} "${my_ipt_comment}" 6
+            write_ipt udp ${port} "${myScript_ipt_comment}" 6
             [ -n "${u_port_v6}" ] && u_port_v6="${u_port_v6},"
             u_port_v6="${u_port_v6}${port}"
         fi
@@ -159,24 +161,24 @@ close_port(){
     load_xt_comment
     local port CHK FLAG
 	local tmp_file=/tmp/clean_my-script_rule.sh
-	if [ -n "${my_v4tcp}" ]; then
+	if [ -n "${myScript_v4tcp}" ]; then
         local t_port
-        for port in ${my_v4tcp}
+        for port in ${myScript_v4tcp}
         do
         Port_validate
-        CHK=`check_port tcp ${port} "${my_ipt_comment}"`
+        CHK=`check_port tcp ${port} "${myScript_ipt_comment}"`
         [ -n "${CHK}" ] && echo "${CHK}" >> "$tmp_file" || continue
         [ -n "${t_port}" ] && t_port="${t_port},"
         t_port="${t_port}${port}"
         done
         [ -n "${t_port}" ] && echo_date "关闭IPv4 TCP端口：${t_port}"
     fi
-    if [ -n "${my_v4udp}" ]; then
+    if [ -n "${myScript_v4udp}" ]; then
         local u_port
-        for port in ${my_v4udp}
+        for port in ${myScript_v4udp}
         do
         Port_validate
-        CHK=`check_port udp ${port} "${my_ipt_comment}"`
+        CHK=`check_port udp ${port} "${myScript_ipt_comment}"`
         [ -n "${CHK}" ] && echo "${CHK}" >> "$tmp_file" || continue
         [ -n "${u_port}" ] && u_port="${u_port},"
         u_port="${u_port}${port}"
@@ -185,24 +187,24 @@ close_port(){
     fi
     sed -i 's/-A/iptables -D/g' "$tmp_file"
 
-    if [ -n "${my_v6tcp}" ]; then
+    if [ -n "${myScript_v6tcp}" ]; then
         local t_port_v6
-        for port in ${my_v6tcp}
+        for port in ${myScript_v6tcp}
         do
         Port_validate
-        CHK=`check_port tcp ${port} "${my_ipt_comment}" 6`
+        CHK=`check_port tcp ${port} "${myScript_ipt_comment}" 6`
         [ -n "${CHK}" ] && echo "${CHK}" >> "$tmp_file" || continue
         [ -n "${t_port_v6}" ] && t_port_v6="${t_port_v6},"
         t_port_v6="${t_port_v6}${port}"
         done
         [ -n "${t_port_v6}" ] && echo_date "关闭IPv6 TCP端口：${t_port_v6}"
     fi
-    if [ -n "${my_v6udp}" ]; then
+    if [ -n "${myScript_v6udp}" ]; then
         local u_port_v6
-        for port in ${my_v6udp}
+        for port in ${myScript_v6udp}
         do
         Port_validate
-        CHK=`check_port udp ${port} "${my_ipt_comment}" 6`
+        CHK=`check_port udp ${port} "${myScript_ipt_comment}" 6`
         [ -n "${CHK}" ] && echo "${CHK}" >> "$tmp_file" || continue
         [ -n "${u_port_v6}" ] && u_port_v6="${u_port_v6},"
         u_port_v6="${u_port_v6}${port}"
@@ -210,14 +212,14 @@ close_port(){
         [ -n "${u_port_v6}" ] && echo_date "关闭IPv6 UDP端口：${u_port_v6}"
     fi
     sed -i 's/-A/ip6tables -D/g' "$tmp_file"
-	if [ -z "${my_v4tcp}" ] && [ -z "${my_v4udp}" ] && [ -z "${my_v6tcp}" ] && [ -z "${my_v6udp}" ] && [ -n "${my_ipt_comment}" ];then
-		CHK=`check_port "" "" "${my_ipt_comment}"`
+	if [ -z "${myScript_v4tcp}" ] && [ -z "${myScript_v4udp}" ] && [ -z "${myScript_v6tcp}" ] && [ -z "${myScript_v6udp}" ] && [ -n "${myScript_ipt_comment}" ];then
+		CHK=`check_port "" "" "${myScript_ipt_comment}"`
         [ -n "${CHK}" ] && echo "${CHK}" >> "$tmp_file" && FLAG=1
 		sed -i 's/-A/iptables -D/g' "$tmp_file"
-		CHK=`check_port "" "" "${my_ipt_comment}" 6`
+		CHK=`check_port "" "" "${myScript_ipt_comment}" 6`
         [ -n "${CHK}" ] && echo "${CHK}" >> "$tmp_file" && FLAG=1
 		sed -i 's/-A/ip6tables -D/g' "$tmp_file"
-		[ "$FLAG" == "1" ] && echo_date "关闭所有备注为 ${my_ipt_comment} 的端口号" || echo_date "没有备注为 ${my_ipt_comment} 的端口号可关闭"
+		[ "$FLAG" == "1" ] && echo_date "关闭所有备注为 ${myScript_ipt_comment} 的端口号" || echo_date "没有备注为 ${myScript_ipt_comment} 的端口号可关闭"
 	fi	
     chmod +x "$tmp_file"
     /bin/sh "$tmp_file" >/dev/null 2>&1
@@ -226,10 +228,10 @@ close_port(){
 # 查询端口
 query_port(){
     local port t_port u_port t_port_v6 u_port_v6
-	local port_l_file=/tmp/upload/my_iptables_l.txt
+	local port_l_file=/tmp/upload/myScript_iptables_l.txt
 	echo_date "查询输入的端口号，已打开的有：" > ${port_l_file}
-	if [ -n "${my_v4tcp}" ]; then
-        for port in ${my_v4tcp}
+	if [ -n "${myScript_v4tcp}" ]; then
+        for port in ${myScript_v4tcp}
         do
 		Port_validate
         if [ -n "$(check_port tcp ${port})" ]; then
@@ -239,8 +241,8 @@ query_port(){
         done
         [ -n "${t_port}" ] && echo "IPV4 TCP：${t_port}" >> ${port_l_file}
     fi
-    if [ -n "${my_v4udp}" ]; then
-        for port in ${my_v4udp}
+    if [ -n "${myScript_v4udp}" ]; then
+        for port in ${myScript_v4udp}
         do
 		Port_validate
         if [ -n "$(check_port udp ${port})" ]; then
@@ -251,8 +253,8 @@ query_port(){
         [ -n "${u_port}" ] && echo "IPV4 UDP：${u_port}" >> ${port_l_file}
     fi
 
-    if [ -n "${my_v6tcp}" ]; then
-        for port in ${my_v6tcp}
+    if [ -n "${myScript_v6tcp}" ]; then
+        for port in ${myScript_v6tcp}
         do
 		Port_validate
         if [ -n "$(check_port tcp ${port} "" 6)" ]; then
@@ -262,8 +264,8 @@ query_port(){
         done
         [ -n "${t_port_v6}" ] && echo "IPV6 TCP：${t_port_v6}" >> ${port_l_file}
     fi
-    if [ -n "${my_v6udp}" ]; then
-        for port in ${my_v6udp}
+    if [ -n "${myScript_v6udp}" ]; then
+        for port in ${myScript_v6udp}
         do
 		Port_validate
         if [ -n "$(check_port udp ${port} "" 6)" ]; then
@@ -289,12 +291,12 @@ query_IPT(){
 }
 # 添加定时(踩坑：获得commd时要操作带双引号变量，否则星号出现异常)
 add_cru(){
-    [ -z "${my_cru_all}" ] && echo_date "自动创建定时任务：内容为空" && return 1
-    local _my_cru_all=`dbus get my_cru_all | base64_decode` 
+    [ -z "${myScript_cru_all}" ] && echo_date "自动创建定时任务：内容为空" && return 1
+    local _myScript_cru_all=`dbus get myScript_cru_all | base64_decode` 
     local tmp id commd
     local i=0
-    cat > /tmp/my_cru_all.txt<<-EOF
-				${_my_cru_all}
+    cat > /tmp/myScript_cru_all.txt<<-EOF
+				${_myScript_cru_all}
 				EOF
     while read -r line
     do
@@ -314,85 +316,85 @@ add_cru(){
         else
             echo_date "未创建定时：第$i行，识别码存在"
         fi
-    done < /tmp/my_cru_all.txt
-    rm -f /tmp/my_cru_all.txt
+    done < /tmp/myScript_cru_all.txt
+    rm -f /tmp/myScript_cru_all.txt
 }
 del_cru(){
     # 在add时，id可能有连续空格，此处重新get与之匹配
-	my_cru_id=$(dbus get my_cru_id)
-	if [ -n "$(cru l | grep -w "#${my_cru_id}#")" ]; then
-        cru d "${my_cru_id}"
-        echo_date "删除定时任务${my_cru_id}"
+	myScript_cru_id=$(dbus get myScript_cru_id)
+	if [ -n "$(cru l | grep -w "#${myScript_cru_id}#")" ]; then
+        cru d "${myScript_cru_id}"
+        echo_date "删除定时任务${myScript_cru_id}"
     else
-        echo_date "删除失败：无定时任务${my_cru_id}"
+        echo_date "删除失败：无定时任务${myScript_cru_id}"
     fi
 }
 # 添加脚本
 add_script(){
-    local _my_script=`dbus get my_script | base64_decode`
-	if [ "${my_script_overwrite}" == "0" ] && [ -f "${scr_file}" ]; then
+    local _myScript_script=`dbus get myScript_script | base64_decode`
+	if [ "${myScript_script_overwrite}" == "0" ] && [ -f "${scr_file}" ]; then
         echo_date "文件${scr_file}已存在，无法添加，退出" 
         return 1
     fi
 	cat > "${scr_file}"<<-EOF
-			${_my_script}
+			${_myScript_script}
 			EOF
 	echo_date "添加脚本 ${scr_file}"
 	chmod +x "${scr_file}"
 
-    [ "${my_script_ap}" == "1" ] && return 1
-    if [ "${my_script_autotype}" == "N" -o "${my_script_autotype}" == "NS" ]; then
-        ln -sf "${scr_file}" /jffs/softcenter/init.d/N${my_script_autolevel}"${my_script_name}"
-        echo_date "添加启动链接 N${my_script_autolevel}${my_script_name}"
+    [ "${myScript_script_ap}" == "1" ] && return 1
+    if [ "${myScript_script_autotype}" == "N" -o "${myScript_script_autotype}" == "NS" ]; then
+        ln -sf "${scr_file}" $init_dir/N${myScript_script_autolevel}"${myScript_script_name}"
+        echo_date "添加启动链接 N${myScript_script_autolevel}${myScript_script_name}"
     fi
-    if [ "${my_script_autotype}" == "S" -o "${my_script_autotype}" == "NS" ]; then
-        ln -sf "${scr_file}" /jffs/softcenter/init.d/S${my_script_autolevel}"${my_script_name}"
-        echo_date "添加启动链接 S${my_script_autolevel}${my_script_name}"
+    if [ "${myScript_script_autotype}" == "S" -o "${myScript_script_autotype}" == "NS" ]; then
+        ln -sf "${scr_file}" $init_dir/S${myScript_script_autolevel}"${myScript_script_name}"
+        echo_date "添加启动链接 S${myScript_script_autolevel}${myScript_script_name}"
     fi
 }
 del_script(){
     if  [ -f "${scr_file}" ]; then
         rm -f "${scr_file}"
         echo_date "删除脚本 ${scr_file}"
-        [ "${my_script_ap}" == "1" ] && return 1
-		rm -f /jffs/softcenter/init.d/*"${my_script_name}"
-        echo_date "发送指令：删除 ${my_script_name}的启动链接"
+        [ "${myScript_script_ap}" == "1" ] && return 1
+		rm -f $init_dir/*"${myScript_script_name}"
+        echo_date "发送指令：删除 ${myScript_script_name}的启动链接"
     else
         echo_date "删除失败: 无文件${scr_file}"
     fi
 }
 query_script(){
-    true > /tmp/upload/my_script_l.txt
-    query_script_com >> /tmp/upload/my_script_l.txt
+    true > /tmp/upload/myScript_script_l.txt
+    query_script_com >> /tmp/upload/myScript_script_l.txt
     echo_date "查询文件列表"
 }
 query_script_com(){
     echo_date "查询/jffs/scripts/目录文件："
     ls -lt /jffs/scripts/
     echo ""
-    echo_date "查询/jffs/softcenter/scripts/目录文件："
-    ls -lt /jffs/softcenter/scripts/
+    echo_date "查询$script_dir/目录文件："
+    ls -lt $script_dir/
     echo ""
-    echo_date "查询/jffs/softcenter/init.d/目录文件："
-    ls -lt /jffs/softcenter/init.d/
+    echo_date "查询$init_dir/目录文件："
+    ls -lt $init_dir/
 }
 # 运行脚本
 run_script(){
-    echo_date "运行${scr_file} ${my_script_runparam}" | tee -a /tmp/upload/my_script_echo.txt
-    /bin/sh "${scr_file}" ${my_script_runparam} >>/tmp/upload/my_script_echo.txt 2>&1
+    echo_date "运行${scr_file} ${myScript_script_runparam}" | tee -a /tmp/upload/myScript_script_echo.txt
+    /bin/sh "${scr_file}" ${myScript_script_runparam} >>/tmp/upload/myScript_script_echo.txt 2>&1
 }
 kill_script(){
     # killall和pidof貌似对脚本无效，对bin文件有效
-    local _pid=$(ps -w | grep -w "${my_script_name}" | grep -v grep | awk '{print $1}')
+    local _pid=$(ps -w | grep -w "${myScript_script_name}" | grep -v grep | awk '{print $1}')
     if [ -n "${_pid}" ]; then
         kill -9 "${_pid}" >/dev/null 2>&1
-        echo_date "关闭${my_script_name}进程:${_pid}"
+        echo_date "关闭${myScript_script_name}进程:${_pid}"
 	fi
 }
 query_script_content(){
-    rm -f /tmp/upload/my_script_c_lnk.txt
+    rm -f /tmp/upload/myScript_script_c_lnk.txt
     echo_date "发送指令：查看脚本文件内容"
-    [ -f "${scr_file}" ] && ln -sf "${scr_file}" /tmp/upload/my_script_c_lnk.txt || echo_date "查看${scr_file}内容失败，无此文件"
+    [ -f "${scr_file}" ] && ln -sf "${scr_file}" /tmp/upload/myScript_script_c_lnk.txt || echo_date "查看${scr_file}内容失败，无此文件"
 }
 
 case $ACTION in
@@ -430,13 +432,13 @@ killscript)
 	kill_script | tee -a $LOG_FILE
 	;;
 clearecho)
-	true > /tmp/upload/my_script_echo.txt
+	true > /tmp/upload/myScript_script_echo.txt
 	;;
 scriptcontent)
 	query_script_content | tee -a $LOG_FILE
 	;;
 start_nat)
-    [ "${my_openport_auto}" == "1" ] && open_port | tee -a $LOG_FILE
-    [ "${my_cru_auto}" == "1" ] && add_cru | tee -a $LOG_FILE
+    [ "${myScript_openport_auto}" == "1" ] && open_port | tee -a $LOG_FILE
+    [ "${myScript_cru_auto}" == "1" ] && add_cru | tee -a $LOG_FILE
 	;;
 esac
