@@ -158,27 +158,31 @@ function save() {
             }
 	}
 }
-function open_port() {
-		if (!trim(E("myScript_v4tcp").value) && !trim(E("myScript_v4udp").value) && !trim(E("myScript_v6tcp").value) && !trim(E("myScript_v6udp").value) && !E("myScript_fix_v6").checked) {
-			alert("无法继续！空内容！");
-			return false;
-		}
-	save();
-	
-	// post data
-	var uid = parseInt(Math.random() * 100000000);
-	var postData = {"id": uid, "method": "myScript_config.sh", "params": ["openport"], "fields": db_myScript };
-	$.ajax({
+function myAjax_post(data) {
+  $.ajax({
 		url: "/_api/",
 		cache: false,
 		type: "POST",
 		dataType: "json",
-		data: JSON.stringify(postData),
+		data: JSON.stringify(data),
 		success: function(response) {
 			if (response.result == uid){
 			}
 		}
 	});
+}
+function open_port() {
+	if (!trim(E("myScript_v4tcp").value) && !trim(E("myScript_v4udp").value) && !trim(E("myScript_v6tcp").value) && !trim(E("myScript_v6udp").value) && !E("myScript_fix_v6").checked) {
+		alert("无法继续！空内容！");
+		return false;
+	}
+	save();
+	
+	// post data
+	var uid = parseInt(Math.random() * 100000000);
+	var postData = {"id": uid, "method": "myScript_config.sh", "params": ["openport"], "fields": db_myScript };
+	myAjax_post(postData);
+	
 	alert("已完成");
 }
 function close_port() {
@@ -194,17 +198,7 @@ function close_port() {
 	
 	var uid = parseInt(Math.random() * 100000000);
 	var postData = {"id": uid, "method": "myScript_config.sh", "params": ["closeport"], "fields": db_myScript };
-	$.ajax({
-		url: "/_api/",
-		cache: false,
-		type: "POST",
-		dataType: "json",
-		data: JSON.stringify(postData),
-		success: function(response) {
-			if (response.result == uid){
-			}
-		}
-	});
+	myAjax_post(postData);
 	}
 }
 function query_port() {
@@ -212,109 +206,62 @@ function query_port() {
 	
 	var uid = parseInt(Math.random() * 100000000);
 	var postData = {"id": uid, "method": "myScript_config.sh", "params": ["queryport"], "fields": db_myScript };
-	$.ajax({
-		url: "/_api/",
-		cache: false,
-		type: "POST",
-		dataType: "json",
-		data: JSON.stringify(postData),
-		success: function(response) {
-			if (response.result == uid){
-			}
-		}
-	});
+	myAjax_post(postData);
 }
 function add_cru() {
-		if (!trim(E("myScript_cru_all").value)) {
-			alert("无法继续！定时任务内容为空!");
-			return false;
-		}
+	if (!trim(E("myScript_cru_all").value)) {
+		alert("无法继续！定时任务内容为空!");
+		return false;
+	}
 	save();
 	
 	var uid = parseInt(Math.random() * 100000000);
 	var postData = {"id": uid, "method": "myScript_config.sh", "params": ["addcru"], "fields": db_myScript };
-	$.ajax({
-		url: "/_api/",
-		cache: false,
-		type: "POST",
-		dataType: "json",
-		data: JSON.stringify(postData),
-		success: function(response) {
-			if (response.result == uid){
-			}
-		}
-	});
+	myAjax_post(postData);
+	
 	alert("已发送指令，请查看是否生成？");
 }
 function del_cru() {
-		if (!trim(E("myScript_cru_id").value)) {
-			alert("无法继续！识别码 为空!");
-			return false;
-		}
+	if (!trim(E("myScript_cru_id").value)) {
+		alert("无法继续！识别码 为空!");
+		return false;
+	}
 	save();
 	
 	var uid = parseInt(Math.random() * 100000000);
 	var postData = {"id": uid, "method": "myScript_config.sh", "params": ["delcru"], "fields": db_myScript };
-	$.ajax({
-		url: "/_api/",
-		cache: false,
-		type: "POST",
-		dataType: "json",
-		data: JSON.stringify(postData),
-		success: function(response) {
-			if (response.result == uid){
-			}
-		}
-	});
+	myAjax_post(postData);
+	
 	alert("已完成");
 }
 function add_script() {
-		if (!trim(E("myScript_script").value) || !trim(E("myScript_script_name").value)) {
-			alert("无法继续！脚本文件名和内容 为空!");
-			return false;
-		}
-		if (E("myScript_script_autotype").value && !trim(E("myScript_script_autolevel").value)) {
-			alert("无法继续！自启打开后，优先级数值为空！");
-			return false;
-		}
+	if (!trim(E("myScript_script").value) || !trim(E("myScript_script_name").value)) {
+		alert("无法继续！脚本文件名和内容 为空!");
+		return false;
+	}
+	if (E("myScript_script_autotype").value && !trim(E("myScript_script_autolevel").value)) {
+		alert("无法继续！自启打开后，优先级数值为空！");
+		return false;
+	}
 	save();
 	
 	var uid = parseInt(Math.random() * 100000000);
 	var postData = {"id": uid, "method": "myScript_config.sh", "params": ["addscript"], "fields": db_myScript };
-	$.ajax({
-		url: "/_api/",
-		cache: false,
-		type: "POST",
-		dataType: "json",
-		data: JSON.stringify(postData),
-		success: function(response) {
-			if (response.result == uid){
-			}
-		}
-	});
+	myAjax_post(postData);
+	
 	alert("已发送指令，请查看文件是否生成或查阅插件日志。");
 }
 function del_script() {
-		if (!trim(E("myScript_script_name").value)) {
-			alert("无法继续！文件名 为空!");
-			return false;
-		}
-		if (confirm('确定删除吗.?')){
+	if (!trim(E("myScript_script_name").value)) {
+		alert("无法继续！文件名 为空!");
+		return false;
+	}
+	if (confirm('确定删除吗.?')){
 	save();
 	
 	var uid = parseInt(Math.random() * 100000000);
 	var postData = {"id": uid, "method": "myScript_config.sh", "params": ["delscript"], "fields": db_myScript };
-	$.ajax({
-		url: "/_api/",
-		cache: false,
-		type: "POST",
-		dataType: "json",
-		data: JSON.stringify(postData),
-		success: function(response) {
-			if (response.result == uid){
-			}
-		}
-	});
+	myAjax_post(postData);
     }
 }
 function query_script() {
@@ -322,208 +269,106 @@ function query_script() {
 	
 	var uid = parseInt(Math.random() * 100000000);
 	var postData = {"id": uid, "method": "myScript_config.sh", "params": ["queryscript"], "fields": db_myScript };
-	$.ajax({
-		url: "/_api/",
-		cache: false,
-		type: "POST",
-		dataType: "json",
-		data: JSON.stringify(postData),
-		success: function(response) {
-			if (response.result == uid){
-			}
-		}
-	});
+	myAjax_post(postData);
 }
 function query_script_content() {
     if (!trim(E("myScript_script_name").value)) {
-			alert("无法继续！文件名 为空!");
-			return false;
-		}
+		alert("无法继续！文件名 为空!");
+		return false;
+	}
  	save();
 	
 	var uid = parseInt(Math.random() * 100000000);
 	var postData = {"id": uid, "method": "myScript_config.sh", "params": ["scriptcontent"], "fields": db_myScript };
-	$.ajax({
-		url: "/_api/",
-		cache: false,
-		type: "POST",
-		dataType: "json",
-		data: JSON.stringify(postData),
-		success: function(response) {
-			if (response.result == uid){
-			}
-		}
-	});
+	myAjax_post(postData);
 }
 function run_script() {
     if (!trim(E("myScript_script_name").value)) {
-			alert("无法继续！文件名 为空!");
-			return false;
-		}
+		alert("无法继续！文件名 为空!");
+		return false;
+	}
  	save();
 	
 	var uid = parseInt(Math.random() * 100000000);
 	var postData = {"id": uid, "method": "myScript_config.sh", "params": ["runscript"], "fields": db_myScript };
-	$.ajax({
-		url: "/_api/",
-		cache: false,
-		type: "POST",
-		dataType: "json",
-		data: JSON.stringify(postData),
-		success: function(response) {
-			if (response.result == uid){
-			}
-		}
-	});
+	myAjax_post(postData);
+	
 	alert("已开始运行，是否完成视脚本运行情况。");
 }
 function kill_script() {
     if (!trim(E("myScript_script_name").value)) {
-			alert("无法继续！文件名 为空!");
-			return false;
-		}
+		alert("无法继续！文件名 为空!");
+		return false;
+	}
  	save();
 	
 	var uid = parseInt(Math.random() * 100000000);
 	var postData = {"id": uid, "method": "myScript_config.sh", "params": ["killscript"], "fields": db_myScript };
-	$.ajax({
-		url: "/_api/",
-		cache: false,
-		type: "POST",
-		dataType: "json",
-		data: JSON.stringify(postData),
-		success: function(response) {
-			if (response.result == uid){
-			}
-		}
-	});
+	myAjax_post(postData);
+	
 	alert("已发送强停指令");
 }
 function clear_log() {
 	var uid = parseInt(Math.random() * 100000000);
 	var postData = {"id": uid, "method": "myScript_config.sh", "params": ["clearlog"], "fields": db_myScript };
-	$.ajax({
-		url: "/_api/",
-		cache: false,
-		type: "POST",
-		dataType: "json",
-		data: JSON.stringify(postData),
-		success: function(response) {
-			if (response.result == uid){
-			}
-		}
-	});
+	myAjax_post(postData);
 }
 function clear_echo() {
 	var uid = parseInt(Math.random() * 100000000);
 	var postData = {"id": uid, "method": "myScript_config.sh", "params": ["clearecho"], "fields": db_myScript };
-	$.ajax({
-		url: "/_api/",
-		cache: false,
-		type: "POST",
-		dataType: "json",
-		data: JSON.stringify(postData),
-		success: function(response) {
-			if (response.result == uid){
-			}
-		}
-	});
+	myAjax_post(postData);
 }
 function menu_hook(title, tab) {
 	tabtitle[tabtitle.length - 1] = new Array("", "软件中心", "离线安装", "我的脚本");
 	tablink[tablink.length - 1] = new Array("", "Main_Soft_center.asp", "Main_Soft_setting.asp", "Module_myScript.asp");
 }
-
-function get_log() {
+function myAjax_post_alone() {
 	$.ajax({
-		url: '/_temp/myScript_log.log',
-		type: 'GET',
-		cache:false,
-		dataType: 'text',
-		success: function(res) {
-			$('#logtxt').val(res);
-		}
+		url: "/applydb.cgi?p=myScript",
+		cache: false,
+		type: "POST",
+		dataType: "html",
+		data: $.param(db_myScript)
 	});
 }
-function get_iptables() {
-	$.ajax({
-		url: '/_temp/myScript_iptables_l.txt',
+function myAjax_get(url, succ){
+   $.ajax({
+		url: url,
 		type: 'GET',
 		cache:false,
 		dataType: 'text',
 		success: function(res) {
-			$('#IPTtxt').val(res);
+			$(succ).val(res);
 		}
-	});
-}
-function get_cru() {
-	$.ajax({
-		url: '/_temp/myScript_cru_l_lnk.txt',
-		type: 'GET',
-		cache:false,
-		dataType: 'text',
-		success: function(res) {
-			$('#crutxt').val(res);
-		}
-	});
-}
-function get_script() {
-	$.ajax({
-		url: '/_temp/myScript_script_l.txt',
-		type: 'GET',
-		cache:false,
-		dataType: 'text',
-		success: function(res) {
-			$('#scripttxt').val(res);
-		}
-	});
-}
-function get_script_content() {
-	$.ajax({
-		url: '/_temp/myScript_script_c_lnk.txt',
-		type: 'GET',
-		cache:false,
-		dataType: 'text',
-		success: function(res) {
-			$('#contenttxt').val(res);
-		}
-	});
-}
-function get_script_echo() {
-	$.ajax({
-		url: '/_temp/myScript_script_echo.txt',
-		type: 'GET',
-		cache:false,
-		dataType: 'text',
-		success: function(res) {
-			$('#echotxt').val(res);
-		}
-	});
+	}); 
 }
 function open_conf(open_conf) {
 	if (open_conf == "myScript_log") {
 	    save();
-		get_log();
+	    myAjax_post_alone();
+	    myAjax_get('/_temp/myScript_log.log', '#logtxt');
 	}
 	if (open_conf == "myScript_iptables_l") {
-	    setTimeout("get_iptables()", 1000); 
+	    setTimeout("myAjax_get('/_temp/myScript_iptables_l.txt', '#IPTtxt')", 1000); 
 	}
 	if (open_conf == "myScript_cru_l_lnk") {
-	    save();
-		get_cru();
+        save();
+        myAjax_post_alone();
+		myAjax_get('/_temp/myScript_cru_l_lnk.txt', '#crutxt');
 	}
 	if (open_conf == "myScript_script_l") {
-	    setTimeout("get_script()", 1000); 
+	    setTimeout("myAjax_get('/_temp/myScript_script_l.txt', '#scripttxt')", 1000); 
 	}
 	if (open_conf == "myScript_script_echo") {
-	    save();
-		get_script_echo();
+        save();
+        myAjax_post_alone();
+		myAjax_get('/_temp/myScript_script_echo.txt', '#echotxt');
 	}
 	if (open_conf == "myScript_script_c_lnk") {
-	    if (!trim(E("myScript_script_name").value)) {
-			return false;
-		}
-		setTimeout("get_script_content()", 1000); 
+        if (!trim(E("myScript_script_name").value)) {
+        	return false;
+        }
+        setTimeout("myAjax_get('/_temp/myScript_script_c_lnk.txt', '#contenttxt')", 1000); 
 	}
 	$("#" + open_conf).fadeIn(0);
 }
