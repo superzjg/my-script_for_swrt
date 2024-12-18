@@ -11,6 +11,8 @@ LOG_FILE=/tmp/upload/myScript_log.log
 alias echo_date='echo 【$(TZ=UTC-8 date -R +%Y年%m月%d日\ %X)】:'
 mkdir -p /tmp/upload
 user=`nvram get http_username`
+_fw_enable_x=`nvram get fw_enable_x`
+_ipv6_fw_enable=`nvram get ipv6_fw_enable`
 [ "${myScript_script_ap}" == "1" ] && scr_file=/jffs/scripts/"${myScript_script_name}" || scr_file=$script_dir/"${myScript_script_name}"
 
 if [ ! -L "/tmp/upload/myScript_cru_l_lnk.txt" ]; then
@@ -63,13 +65,11 @@ load_xt_comment(){
 }
 # 修复开启IPv6防火墙（关闭IPv4防火墙），v6的INPUT规则（B5.2.2 B5.2.3）
 fix_v6_rules(){
-    local _fw_enable_x=`nvram get fw_enable_x`
-    local _ipv6_fw_enable=`nvram get ipv6_fw_enable`
     local Flag
     if [ "${_fw_enable_x}" == "0" ] && [ "${_ipv6_fw_enable}" == "1" ]; then
         local _buildno=`nvram get buildno`
         local M1 M2 M3 M4 M5 M6
-		local tmp_file=/tmp/myScript_IP6IN_rules.txt
+		local tmp_file=/tmp/myScript_IP6T_Rule_$$
         ip6tables -t filter -S INPUT > "$tmp_file"
         M1=$(cat "$tmp_file" | grep "state RELATED,ESTABLISHED -j ACCEPT")
         M2=$(cat "$tmp_file" | grep -w "br0" | grep "state NEW -j ACCEPT")
@@ -98,11 +98,18 @@ fix_v6_rules(){
 # 打开端口
 open_port(){
     [ "${myScript_fix_v6}" == "1" ] && fix_v6_rules
-    
+	
+	WanHttpsPort=`nvram get misc_httpsport_x`
+    [ "`nvram get misc_http_x`" = "1" ] && {
+		myScript_v4tcp="${WanHttpsPort} ${myScript_v4tcp}"
+		myScript_v6tcp="${WanHttpsPort} ${myScript_v6tcp}"
+	}
     [ -z "${myScript_v4tcp}" ] && [ -z "${myScript_v4udp}" ] && [ -z "${myScript_v6tcp}" ] && [ -z "${myScript_v6udp}" ] && return 1
     load_xt_comment
     local port
-	if [ -n "${myScript_v4tcp}" ]; then
+    [ "${_fw_enable_x}" == "0" ] && echo_date "IPv4 防火墙未启用"
+    [ "${_ipv6_fw_enable}" == "0" ] && echo_date "IPv6 防火墙未启用"
+	if [ -n "${myScript_v4tcp}" ] && [ "${_fw_enable_x}" == "1" ]; then
 		local t_port
         for port in ${myScript_v4tcp}
         do
@@ -115,7 +122,7 @@ open_port(){
         done
         [ -n "${t_port}" ] && echo_date "开启IPv4 TCP端口：${t_port}"
     fi
-    if [ -n "${myScript_v4udp}" ]; then
+    if [ -n "${myScript_v4udp}" ] && [ "${_fw_enable_x}" == "1" ]; then
         local u_port
         for port in ${myScript_v4udp}
         do
@@ -129,7 +136,7 @@ open_port(){
         [ -n "${u_port}" ] && echo_date "开启IPv4 UDP端口：${u_port}"
     fi
 
-    if [ -n "${myScript_v6tcp}" ]; then
+    if [ -n "${myScript_v6tcp}" ] && [ "${_ipv6_fw_enable}" == "1" ]; then
         local t_port_v6
         for port in ${myScript_v6tcp}
         do
@@ -142,7 +149,7 @@ open_port(){
         done
         [ -n "${t_port_v6}" ] && echo_date "开启IPv6 TCP端口：${t_port_v6}"
     fi
-    if [ -n "${myScript_v6udp}" ]; then
+    if [ -n "${myScript_v6udp}" ] && [ "${_ipv6_fw_enable}" == "1" ]; then
         local u_port_v6
         for port in ${myScript_v6udp}
         do
@@ -160,7 +167,7 @@ open_port(){
 close_port(){
     load_xt_comment
     local port CHK FLAG
-	local tmp_file=/tmp/clean_my-script_rule.sh
+	local tmp_file=/tmp/clean_myScript_rule_$$
 	if [ -n "${myScript_v4tcp}" ]; then
         local t_port
         for port in ${myScript_v4tcp}
